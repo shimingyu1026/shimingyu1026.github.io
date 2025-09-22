@@ -40,7 +40,7 @@ jobs:
         with:
           # 指定只上传 dist/client 目录下的内容
           # 这样 artifact 的根目录就是你网站的根目录了
-          path: ./dist/client
+          path: ./
 
   deploy:
     needs: build
