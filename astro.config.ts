@@ -1,5 +1,5 @@
 import { rehypeHeadingIds } from '@astrojs/markdown-remark'
-import vercel from '@astrojs/vercel'
+// import vercel from '@astrojs/vercel' // <--- 1. 已注释掉
 import AstroPureIntegration from 'astro-pure'
 import { defineConfig } from 'astro/config'
 import rehypeKatex from 'rehype-katex'
@@ -33,8 +33,8 @@ export default defineConfig({
   // Adapter
   // https://docs.astro.build/en/guides/deploy/
   // 1. Vercel (serverless)
-  adapter: vercel(),
-  output: 'server',
+  // adapter: vercel(), // <--- 2. 已注释掉
+  output: 'static', // <--- 3. 已修改
   // 2. Vercel (static)
   // adapter: vercelStatic(),
   // 3. Local (standalone)
@@ -55,8 +55,8 @@ export default defineConfig({
     // mdx(),
     AstroPureIntegration(config)
     // (await import('@playform/compress')).default({
-    //   SVG: false,
-    //   Exclude: ['index.*.js']
+    //   SVG: false,
+    //   Exclude: ['index.*.js']
     // }),
 
     // Temporary fix vercel adapter
@@ -106,10 +106,10 @@ export default defineConfig({
   },
   vite: {
     plugins: [
-      //   visualizer({
-      //     emitFile: true,
-      //     filename: 'stats.html'
-      //   })
+      //   visualizer({
+      //     emitFile: true,
+      //     filename: 'stats.html'
+      //   })
     ]
   }
 })
