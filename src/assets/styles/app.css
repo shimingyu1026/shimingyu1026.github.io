@@ -1,5 +1,31 @@
 /* Font */
 @font-face {
+  font-family: 'MiSans'; /* 我们给这个字体家族统一命名为 'MiSans' */
+  src: url('/fonts/MiSans-Regular.woff2') format('woff2'); /* 字体文件的路径 */
+  font-weight: 400; /* 对应常规体的字重 */
+  font-style: normal;
+  font-display: swap; /* 优化加载体验，防止文字空白 */
+}
+/* 中等体 - Medium */
+@font-face {
+  font-family: 'MiSans';
+  src: url('/fonts/MiSans-Medium.woff2') format('woff2');
+  font-weight: 500; /* 对应中等体的字重 */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 粗体 - Bold */
+@font-face {
+  font-family: 'MiSans';
+  src: url('/fonts/MiSans-Bold.woff2') format('woff2');
+  font-weight: 700; /* 对应粗体的字重 */
+  font-style: normal;
+  font-display: swap;
+}
+
+
+@font-face {
   font-family: 'Satoshi';
   src: url('/fonts/Satoshi-Variable.ttf') format('truetype');
   font-style: normal;
@@ -12,52 +38,53 @@
   font-display: swap;
 }
 html {
-  font-family: 'Satoshi', sans-serif;
+  font-family: 'MiSans', 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 /* Theme */
 :root {
-  --background: 210 33% 99%;
-  --foreground: 240 10% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 200 29% 45%;
-  --primary-foreground: 0 0% 92.5%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95%;
-  --muted-foreground: 240 3.8% 28.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 72.22% 50.59%;
+  --background: 210 15% 96%;
+  --foreground: 215 15% 25%;
+  --card: 210 15% 99%;
+  --card-foreground: 215 15% 25%;
+  --popover: 210 15% 99%;
+  --popover-foreground: 215 15% 25%;
+  --primary: 210 30% 55%;
+  --primary-foreground: 210 15% 98%;
+  --secondary: 210 10% 92%;
+  --secondary-foreground: 215 15% 25%;
+  --muted: 210 10% 90%;
+  --muted-foreground: 215 10% 50%;
+  --accent: 210 10% 92%;
+  --accent-foreground: 215 15% 25%;
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 88%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
+  --border: 210 10% 88%;
+  --input: 210 10% 88%;
+  --ring: 210 30% 55%;
   --radius: 0.5rem;
 }
+
 .dark {
-  --background: 240 20.54% 5.2%;
-  --foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 195 95% 85%;
-  --primary-foreground: 240 3.7% 15.9%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 5.9% 12%;
-  --muted-foreground: 240 5% 74.9%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
+  --background: 220 10% 18%;
+  --foreground: 210 20% 94%;
+  --card: 220 10% 22%;
+  --card-foreground: 210 20% 94%;
+  --popover: 220 10% 22%;
+  --popover-foreground: 210 20% 94%;
+  --primary: 210 50% 80%;
+  --primary-foreground: 220 10% 15%;
+  --secondary: 220 8% 25%;
+  --secondary-foreground: 210 20% 94%;
+  --muted: 220 8% 28%;
+  --muted-foreground: 210 15% 70%;
+  --accent: 220 8% 25%;
+  --accent-foreground: 210 20% 94%;
+  --destructive: 0 63% 40%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 3.7% 19.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
+  --border: 220 8% 30%;
+  --input: 220 8% 25%;
+  --ring: 210 50% 80%;
 }
 :root {
   --un-default-border-color: hsl(var(--border) / 1);
