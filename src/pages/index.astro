@@ -1,5 +1,7 @@
 ---
 import { Image } from 'astro:assets'
+import { GithubCard } from 'astro-pure/advanced'
+
 
 import { Quote } from 'astro-pure/advanced'
 import { PostPreview } from 'astro-pure/components/pages'
@@ -9,7 +11,7 @@ import PageLayout from '@/layouts/BaseLayout.astro'
 import ProjectCard from '@/components/home/ProjectCard.astro'
 import Section from '@/components/home/Section.astro'
 import SkillLayout from '@/components/home/SkillLayout.astro'
-import avatar from '@/assets/avatar.png'
+import CPC from '@/assets/CPC.jpg'
 import config from '@/site-config'
 
 const HDL = ['SystemVerilog', 'Chisel']
@@ -25,7 +27,7 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
   <main class='flex w-full flex-col items-center'>
     <section class='animate mb-10 flex flex-col items-center gap-y-7' id='content-header'>
       <Image
-        src={avatar}
+        src={CPC}
         alt='profile'
         class='h-28 w-auto rounded-full border p-1'
         loading='eager'
@@ -44,6 +46,15 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
             target='_blank'
           >
             <Icon name='github' class='size-5' slot='icon' />
+          </Label>
+
+          <Label
+            title='Email'
+            as='a'
+            href='mingyu.shi@smail.nju.edu.cn'
+            target='_blank'
+          >
+            <Icon name='email' class='size-5' slot='icon' />
           </Label>
         </div>
       </div>

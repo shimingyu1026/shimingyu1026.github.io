@@ -122,9 +122,21 @@ import { Icon } from '../user'
 
     &.not-top {
       --un-border-opacity: 1;
-      border-color: hsl(var(--border) / var(--un-border-opacity));
+      /* border-color: hsl(var(--border) / var(--un-border-opacity));
       --un-bg-opacity: 1;
-      background-color: hsl(var(--background) / var(--un-bg-opacity));
+      background-color: hsl(var(--background) / var(--un-bg-opacity)); */
+      border-color: hsl(var(--border) / 0.2); /* 可选：降低边框透明度，让玻璃效果更突出 */
+      
+      /* --- 核心修改开始 --- */
+      
+      /* 1. 修改背景颜色，增加透明度 */
+      background-color: hsl(var(--background) / 0.75); /* 将不透明度从 1 调整为 0.75 */
+      
+      /* 2. 添加背景模糊效果，这就是“毛玻璃”的关键 */
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px); /* 兼容 Safari 浏览器 */
+
+
       padding-left: 0.375rem;
       padding-right: 0.375rem;
       box-shadow:
@@ -143,7 +155,8 @@ import { Icon } from '../user'
     }
   }
   :global(.dark) header-component.not-top {
-    background-color: hsl(var(--muted) / var(--un-bg-opacity));
+    /* background-color: hsl(var(--muted) / var(--un-bg-opacity)); */
+    background-color: hsl(var(--muted) / 0.7);
   }
 
   /* header menu */
