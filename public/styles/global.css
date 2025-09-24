@@ -207,6 +207,111 @@ span.katex-display {
   }
 }
 
+/* 高斯模糊导航栏效果 - 强制优先级 */
+header-component.not-top,
+header-component[class*="not-top"],
+header-component.group.not-top {
+  background: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* 暗色模式高斯模糊 - 强制优先级 */
+html.dark header-component.not-top,
+html.dark header-component[class*="not-top"],
+html.dark header-component.group.not-top {
+  background: rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 移动端菜单高斯模糊 - 强制优先级 */
+@media (max-width: 640px) {
+  header-component.not-top .expanded #headerExpandContent,
+  header-component[class*="not-top"] .expanded #headerExpandContent {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  }
+  
+  html.dark header-component.not-top .expanded #headerExpandContent,
+  html.dark header-component[class*="not-top"] .expanded #headerExpandContent {
+    background: rgba(0, 0, 0, 0.7) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+}
+
+/* Fireworks Click Effect */
+.firework-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+}
+
+.firework-particle::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 12px currentColor;
+}
+
+/* Firework particle animations */
+@keyframes firework-explode {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes firework-trail {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Color variations for fireworks */
+.firework-particle.color-1 { color: #ff6b6b; }
+.firework-particle.color-2 { color: #4ecdc4; }
+.firework-particle.color-3 { color: #45b7d1; }
+.firework-particle.color-4 { color: #96ceb4; }
+.firework-particle.color-5 { color: #feca57; }
+.firework-particle.color-6 { color: #ff9ff3; }
+.firework-particle.color-7 { color: #54a0ff; }
+.firework-particle.color-8 { color: #5f27cd; }
+
+/* Dark mode color adjustments */
+html.dark .firework-particle.color-1 { color: #ff8a8a; }
+html.dark .firework-particle.color-2 { color: #6eddd6; }
+html.dark .firework-particle.color-3 { color: #6bc5e0; }
+html.dark .firework-particle.color-4 { color: #a8dcc4; }
+html.dark .firework-particle.color-5 { color: #fed766; }
+html.dark .firework-particle.color-6 { color: #ffb3f3; }
+html.dark .firework-particle.color-7 { color: #74b9ff; }
+html.dark .firework-particle.color-8 { color: #7c4dff; }
+
 /* Scroll bar */
 :root {
   --scrollbar-width: 6px;

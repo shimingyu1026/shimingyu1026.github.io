@@ -1,0 +1,68 @@
+---
+import { Icon } from 'astro-pure/user'
+
+interface StatCard {
+  icon: 'time' | 'calendar' | 'list'
+  value: string
+  label: string
+}
+
+interface Props {
+  daysOnline: number
+  lastUpdated: string
+  totalWords: number
+  totalPosts: number
+}
+
+const { daysOnline, lastUpdated, totalWords, totalPosts } = Astro.props
+
+// 格式化字数
+const formatWords = (words: number): string => {
+  if (words >= 10000) {
+    return `${(words / 10000).toFixed(1)}w`
+  }
+  return words.toString()
+}
+
+// 统计卡片数据
+const statCards: StatCard[] = [
+  {
+    icon: 'time',
+    value: daysOnline.toString(),
+    label: 'Days Online'
+  },
+  {
+    icon: 'calendar',
+    value: lastUpdated,
+    label: 'Last Updated'
+  },
+  {
+    icon: 'list',
+    value: formatWords(totalWords),
+    label: 'Total Words'
+  }
+]
+---
+
+<div class="flex flex-col gap-y-4">
+  <!-- 统计卡片 -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {statCards.map((card) => (
+      <div class="flex items-center gap-3 rounded-lg border bg-card p-4">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+          <Icon name={card.icon} class="h-5 w-5 text-primary" />
+        </div>
+        <div class="flex flex-col">
+          <span class="text-lg font-semibold">{card.value}</span>
+          <span class="text-sm text-muted-foreground">{card.label}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+  
+  <!-- 总文章数 -->
+  <div class="flex items-center justify-between border-t pt-4">
+    <span class="text-sm text-muted-foreground">Total Posts</span>
+    <span class="text-sm font-medium">{totalPosts}</span>
+  </div>
+</div>

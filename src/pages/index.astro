@@ -11,6 +11,8 @@ import PageLayout from '@/layouts/BaseLayout.astro'
 import ProjectCard from '@/components/home/ProjectCard.astro'
 import Section from '@/components/home/Section.astro'
 import SkillLayout from '@/components/home/SkillLayout.astro'
+import Statistics from '@/components/home/Statistics.astro'
+import { getTotalWordCount } from '@/utils/wordCount'
 import CPC from '@/assets/CPC.jpg'
 import config from '@/site-config'
 
@@ -21,6 +23,31 @@ const Tools = ['Vscode', 'Vim/NeoVim','Git', 'Docker']
 const MAX_POSTS = 10
 const allPosts = await getBlogCollection()
 const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
+
+// 计算统计数据
+const siteStartDate = new Date('2025-09-23') // 网站开始日期
+const now = new Date()
+const daysOnline = Math.floor((now.getTime() - siteStartDate.getTime()) / (1000 * 60 * 60 * 24))
+
+// 获取最新文章更新时间
+const latestPost = allPostsByDate.length > 0 ? allPostsByDate[0] : null
+const lastUpdated = latestPost?.data.updatedDate 
+  ? latestPost.data.updatedDate.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  : latestPost?.data.publishDate.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }) || 'N/A'
+
+// 计算总字数（准确计算）
+const totalWords = await getTotalWordCount(allPosts)
+
+// 总文章数
+const totalPosts = allPosts.length
 ---
 
 <PageLayout meta={{ title: 'Home' }} highlightColor='#659EB9'>
@@ -149,6 +176,15 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
         </ul> */
           }
         </Card>
+      </Section>
+
+      <Section title='Statistics'>
+        <Statistics 
+          daysOnline={daysOnline}
+          lastUpdated={lastUpdated}
+          totalWords={totalWords}
+          totalPosts={totalPosts}
+        />
       </Section>
 
       <!-- <Section title='Website List'>
