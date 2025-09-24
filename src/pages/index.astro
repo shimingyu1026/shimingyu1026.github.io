@@ -15,8 +15,8 @@ import CPC from '@/assets/CPC.jpg'
 import config from '@/site-config'
 
 const HDL = ['SystemVerilog', 'Chisel']
-const frontend = ['TypeScript', 'Vite', 'Webpack', 'Astro']
-const backend = ['Vercel', 'Waline']
+const Programming = ['C/C++', 'Python', 'Scala']
+const Tools = ['Vscode', 'Vim/NeoVim','Git', 'Docker']
 
 const MAX_POSTS = 10
 const allPosts = await getBlogCollection()
@@ -192,8 +192,8 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
 
       <Section title='Skills'>
         <SkillLayout title='HDL' skills={HDL} />
-        <SkillLayout title='Frontend' skills={frontend} />
-        <SkillLayout title='Backend' skills={backend} />
+        <SkillLayout title='Programming' skills={Programming} />
+        <SkillLayout title='Tool' skills={Tools} />
       </Section>
     </div>
     <Quote class='mt-12' />
