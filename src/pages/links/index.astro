@@ -5,9 +5,11 @@ import config from 'virtual:config'
 import { Collapse, Timeline } from 'astro-pure/user'
 import PageLayout from '@/layouts/CommonPage.astro'
 import FriendList from '@/components/links/FriendList.astro'
+import UsefulLinks from '@/components/links/UsefulLinks.astro'
 
 const headings = [
   { depth: 2, slug: 'common-links', text: 'Common Links' },
+  { depth: 2, slug: 'useful-links', text: 'Useful Links' },
   { depth: 2, slug: 'special-links', text: 'Special Links' },
   { depth: 2, slug: 'apply-links', text: 'Apply Links' }
 ]
@@ -20,6 +22,9 @@ const linkEditPage = 'https://github.com/shimingyu1026/shimingyu1026.github.io/b
 <PageLayout title='Links' {headings} view>
   <h2 id='common-links'>Common Links</h2>
   <FriendList list={friends[0]} />
+
+  <h2 id='useful-links'>Useful Links</h2>
+  <UsefulLinks list={friends[1]} />
 
   <h2 id='special-links'>Special Links</h2>
   <FriendList list={friends[2]} />

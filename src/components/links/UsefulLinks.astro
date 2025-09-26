@@ -1,0 +1,86 @@
+---
+interface useful_link {
+  name: string
+  intro: string
+  link: string
+  avatar: string
+}
+
+interface useful_list {
+  id_name: string
+  desc: string
+  link_list: useful_link[]
+}
+
+interface Props {
+  title?: string
+  list: useful_list
+}
+const { title, list: usefulList, ...props } = Astro.props
+---
+
+{title && <h2 id={usefulList.id_name}>{title}</h2>}
+<div class='grid gap-3 sm:grid-cols-2 lg:grid-cols-3' {...props}>
+  {
+    usefulList.link_list.length > 0 ? (
+      usefulList.link_list.map((link: useful_link) => (
+        <a href={link.link} target='_blank' class='no-underline'>
+          <div class='group relative h-full overflow-hidden rounded-xl border bg-background px-4 py-3 transition-all duration-200 hover:border-primary hover:shadow-md hover:shadow-primary/10'>
+            <div class='flex flex-col gap-y-2'>
+              {/* 网站图标 */}
+              <div class='flex items-center gap-x-3'>
+                <div class='flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 text-primary'>
+                  <svg
+                    xmlns='http://www.w3.org/2000/svg'
+                    width='16'
+                    height='16'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    stroke-width='2'
+                    stroke-linecap='round'
+                    stroke-linejoin='round'
+                    class='transition-transform duration-200 group-hover:scale-110'
+                  >
+                    <path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' />
+                    <path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' />
+                  </svg>
+                </div>
+                <div class='flex-1 min-w-0'>
+                  <p class='my-0 truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors'>
+                    {link.name}
+                  </p>
+                </div>
+                <svg
+                  xmlns='http://www.w3.org/2000/svg'
+                  width='14'
+                  height='14'
+                  viewBox='0 0 24 24'
+                  fill='none'
+                  stroke='currentColor'
+                  stroke-width='2'
+                  stroke-linecap='round'
+                  stroke-linejoin='round'
+                  class='text-muted-foreground transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-primary'
+                >
+                  <path d='M7 17L17 7' />
+                  <path d='M7 7h10v10' />
+                </svg>
+              </div>
+              {/* 描述 */}
+              <p class='my-0 text-xs text-muted-foreground line-clamp-2 leading-relaxed'>
+                {link.intro}
+              </p>
+            </div>
+            {/* 背景装饰 */}
+            <div class='absolute -right-2 -top-2 h-16 w-16 rounded-full bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100' />
+          </div>
+        </a>
+      ))
+    ) : (
+      <div class='col-span-full flex items-center justify-center py-8 text-muted-foreground'>
+        <p class='text-sm'>暂无链接</p>
+      </div>
+    )
+  }
+</div>

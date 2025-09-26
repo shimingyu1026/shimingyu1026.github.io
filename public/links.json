@@ -25,9 +25,20 @@
       ]
     },
     {
-      "id_name": "inactive-links",
-      "desc": "Inactive or rule-breaking friends",
-      "link_list": []
+      "id_name": "useful-links",
+      "desc": "Useful links for quick access",
+      "link_list": [
+        {
+          "name": "GitHub",
+          "intro": "代码托管平台",
+          "link": "https://github.com/"
+        },
+        {
+          "name": "prompt",
+          "intro": "提示词优化器",
+          "link": "https://prompt.always200.com/"
+        }
+      ]
     },
     {
       "id_name": "special-links",
