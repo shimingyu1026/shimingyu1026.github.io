@@ -1,0 +1,294 @@
+---
+title: 'Chisel编码风格'
+description: 'Chisel编码风格'
+publishDate: '2025-09-27'
+tags: ['Chisel', '编码风格']
+language: 'Chinese'
+heroImage: { src: './a.jpg' }
+---
+
+# Scala 编码风格笔记
+
+最近在学习 Scala，整理了一些编码风格要点。主要参考了 [Scala 官方风格指南](https://docs.scala-lang.org/style/)，结合自己的实践，记录一些常用的规范。
+
+---
+
+## 1. 缩进与换行
+
+* **缩进**：习惯用 **2 空格**，比 tab 更统一
+* **行宽**：尽量控制在 100 字符内，太长就换行
+* **方法调用换行**：链式调用时这样写比较清晰
+
+  ```scala
+  service
+    .getUser(id)
+    .map(_.toProfile)
+    .filter(_.isActive)
+  ```
+* **参数换行**：参数多的时候，每个参数单独一行更清晰
+
+  ```scala
+  def format(
+    user: User,
+    profile: Profile,
+    settings: Settings
+  ): String = { ... }
+  ```
+
+---
+
+## 2. 命名规范
+
+* **类、特质、对象**：用 PascalCase，这个比较直观
+
+  ```scala
+  class UserProfile {}
+  trait DataFetcher {}
+  object Config {}
+  ```
+* **方法、变量、值**：camelCase，和 Java 一样
+
+  ```scala
+  def calculateSum(x: Int, y: Int): Int = x + y
+  val userName = "Alice"
+  ```
+* **常量**：全大写加下划线，一眼就能看出来
+
+  ```scala
+  val MAX_RETRIES = 5
+  ```
+* **包名**：小写就行，别用下划线
+
+  ```scala
+  package com.example.app
+  ```
+* **类型参数**：单字母大写，T、U、V 这样
+
+  ```scala
+  class Box[T]
+  ```
+
+---
+
+## 3. 类型使用
+
+* 公共 API **最好显式写类型**，让别人看得清楚：
+
+  ```scala
+  def findUser(id: String): Option[User] = { ... }
+  ```
+* 局部变量可以依赖类型推断，省点事：
+
+  ```scala
+  val user = User("Alice")
+  ```
+* 单参数函数可以简写，挺方便的：
+
+  ```scala
+  list.map(_ + 1)
+  ```
+
+---
+
+## 4. 代码块与括号
+
+* 条件语句和循环：习惯用花括号 `{}`，即使只有一行，看起来更清晰
+
+  ```scala
+  if (x > 0) {
+    println("positive")
+  }
+  ```
+* 方法调用有个小技巧：
+
+  * 无副作用 → 不带括号 → `list.size`
+  * 有副作用 → 带括号 → `println("hi")`
+* 单表达式函数可以省略花括号，简洁一些：
+
+  ```scala
+  def square(x: Int): Int = x * x
+  ```
+
+---
+
+## 5. 空格规则
+
+* 括号外留空格：`if (x > 0)` 这样
+* `:` 前无空格，后有空格：
+
+  ```scala
+  def foo(x: Int, y: Int): Int = ...
+  ```
+* `for` 推导式用大括号比较清晰：
+
+  ```scala
+  for { x <- xs } yield x
+  ```
+
+---
+
+## 6. 声明与定义顺序
+
+习惯这样排：常量 → 字段 → 构造方法 → 公共方法 → 私有方法
+
+```scala
+class UserService(val repo: UserRepo) {
+  val DefaultRole = "guest"
+
+  def createUser(name: String): User = {
+    val user = User(name, DefaultRole)
+    repo.save(user)
+    user
+  }
+
+  private def validateName(name: String): Boolean = name.nonEmpty
+}
+```
+
+---
+
+## 7. 控制结构
+
+* `if` 优先用表达式，比语句更函数式：
+
+  ```scala
+  val result = if (flag) "yes" else "no"
+  ```
+* 避免深层嵌套：用模式匹配或提前返回，代码更清晰：
+
+  ```scala
+  def getUserName(user: Option[User]): String = user match {
+    case Some(u) => u.name
+    case None => "Unknown"
+  }
+  ```
+* `for` 推导式替代复杂循环，写起来更简洁：
+
+  ```scala
+  val names = for {
+    u <- users
+    if u.active
+  } yield u.name
+  ```
+
+---
+
+## 8. 方法调用风格
+
+* 0 参数方法：无副作用 → 不带括号
+* 有副作用方法：带括号
+* 1 参数方法：简单时可以用中缀语法，看起来更自然：
+
+  ```scala
+  numbers filter (_ > 0)
+  ```
+
+  链式调用还是用点号，更清晰：
+
+  ```scala
+  numbers.filter(_ > 0).map(_ * 2)
+  ```
+
+---
+
+## 9. 文件组织
+
+* 一个文件一个公共类/对象/特质，别搞太复杂
+* 文件名与顶级类/对象一致，好找
+* import 放在文件顶部，别用通配符 `import foo._`，容易冲突
+
+---
+
+## 10. 注释与文档
+
+* 单行注释：`// comment`，与代码留一空格
+* 多行注释：缩进对齐
+* Scaladoc 用 `/** ... */`，写清楚参数和返回值：
+
+  ```scala
+  /**
+   * 查找用户
+   * @param id 用户ID
+   * @return 返回用户或 None
+   */
+  def findUser(id: String): Option[User]
+  ```
+
+---
+
+## 11. 模式匹配
+
+* `case` 与表达式对齐，箭头 `=>` 后留空格：
+
+  ```scala
+  x match {
+    case 1 => "one"
+    case 2 => "two"
+    case _ => "other"
+  }
+  ```
+
+---
+
+## 12. 集合与方法链
+
+* 链式调用换行时，点号放在行首，看起来更整齐：
+
+  ```scala
+  users
+    .filter(_.active)
+    .map(_.name)
+    .sorted
+  ```
+
+---
+
+## 13. 异常与错误处理
+
+* 尽量避免 `null`，用 `Option`/`Either` 更安全
+* 捕获异常时匹配具体类型，别一股脑 catch Exception：
+
+  ```scala
+  try {
+    dangerous()
+  } catch {
+    case e: IOException => handleIO(e)
+    case e: Exception => handleOther(e)
+  }
+  ```
+
+---
+
+## 14. 隐式与 givens
+
+* 别滥用 implicit，用的时候最好明确命名
+* 把隐式参数或 givens 放在单独作用域，别到处乱放
+
+---
+
+## 15. 函数式风格
+
+* 优先用 `val`，少用 `var`，更安全
+* 用高阶函数代替显式循环，代码更简洁：
+
+  ```scala
+  val sum = numbers.foldLeft(0)(_ + _)
+  ```
+* 保持不可变性，减少副作用，这样代码更好维护
+
+---
+
+# 总结
+
+学了一段时间 Scala，感觉这些编码规范还是挺有用的：
+
+1. **一致性最重要**：团队统一规则，代码看起来更舒服
+2. **核心要点**：
+   * 2 空格缩进，行宽 ≤ 100
+   * 命名规范：类 PascalCase，方法 camelCase，常量大写
+   * 公共 API 显式类型，局部变量用类型推断
+   * 副作用方法用括号，无副作用方法不用括号
+   * 避免 `null`，推崇函数式风格
+   * 文件清晰组织，Scaladoc 完整规范
+
+这些规范基本涵盖了 Scala 官方风格指南的核心内容，平时写代码时多注意这些细节，代码质量会好很多。
