@@ -165,6 +165,32 @@ myList.map( (x:Int) => x + 1 )
 myList.map(_ + 1)
 ```
 
+### 偏函数
+偏函数是一种只对部分参数进行操作的函数，示例：
+```scala
+// 这个偏函数只对 Int 类型的输入有定义
+val fetchUserFromDb: PartialFunction[Any, String] = {
+  case id: Int => s"Fetching user with ID $id from database."
+}
+
+// isDefinedAt 检查
+println(fetchUserFromDb.isDefinedAt(123)) // 输出: true
+println(fetchUserFromDb.isDefinedAt("abc")) // 输出: false
+
+// apply 调用
+println(fetchUserFromDb(456)) // 输出: Fetching user with ID 456 from database.
+```
+可以使用 `orElse` 来实现多个偏函数的组合，达到多个偏函数的效果。
+```scala
+val fetchUserFromDb: PartialFunction[Any, String] = {
+  case id: Int => s"Fetching user with ID $id from database."
+}
+val fetchUserFromCache: PartialFunction[Any, String] = {
+  case id: Int => s"Fetching user with ID $id from cache."
+}
+val fetchUser = fetchUserFromDb orElse fetchUserFromCache
+println(fetchUser(456)) // 输出: Fetching user with ID 456 from cache.
+```
 
 
 
@@ -440,3 +466,5 @@ case class SomeGeneratorParameters(
     val totalWidth = someWidth + someOtherWidth
 }
 ```
+
+## 创建自己的 Chisel 数据类型

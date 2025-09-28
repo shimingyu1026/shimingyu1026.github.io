@@ -1,0 +1,52 @@
+---
+title: 'How to Scale Your Model'
+description: '如何在 TPU 上训练部署大模型'
+publishDate: '2025-09-28'
+tags: ['TPU', '大模型', '训练', '部署']
+language: 'Chinese'
+heroImage: { src: './a.png' }
+---
+文章内容总结自[How to Scale Your Model](https://jax-ml.github.io/scaling-book/)
+
+## 性能瓶颈 Roofline
+
+深度学习运算的本质是由一系列浮点乘法和加法"运算"（FLOP）构成，加速器的速度理论上决定了运算所需的时间。
+$$
+T_{\text{math}} = \frac{\text{Computation FLOPs}}{\text{Accelerator FLOPs/s}}
+$$
+
+同时还有芯片内以及芯片间的通信瓶颈。
+我们将算法的算数强度由其执行的总 FLOP 与其需要通信的字节数（芯片内或芯片间）的比率给出
+$$
+\text{Arithmetic Intensity} = \frac{\text{Computation FLOPs}}{\text{Communication Bytes}}
+$$
+
+当算数强度较高时，我们使用上了大部分的 FLOP，即计算资源。当算数强度较低时，计算受到通信资源的限制，无法充分利用计算资源。
+
+**Example** : 对于两个 bfloat16 向量的点乘 `x • y: bf16[N], bf16[N] → bf16[1]`，需要 4N + 2 个字节，2N - 1 个 FLOP。
+$$
+\text{Intensity}(\text{dot product}) = \frac{\text{Total FLOPs}}{\text{Total Bytes}} = \frac{N + N - 1}{2N + 2N + 2} = \frac{2N - 1}{4N + 2} \to \frac{1}{2}
+$$
+
+**矩阵乘法示例** : 对于X∗Y→Z，其中 X 的形状为 bf16[B,D]，Y 的形状为 bf16[D,F]，Z 的形状为 bf16[B,F]。其算数强度如下：
+$$
+\text{Intensity}(\text{matmul}) = \frac{2BDF}{2BD + 2DF + 2BF} = \frac{BDF}{BD + DF + BF}
+$$
+
+如果 Batch size 相对较小，那么矩阵乘法的算数强度约等于 B
+
+## TPU
+
+TPU 是一个定制的 ASIC，其架构是专门为矩阵乘法优化，具有三个最重要的单元：
+- **MXU** (Matrix Multiply Unit) : 矩阵乘法单元。
+
+    Google 开发的 TPU 大多数进行 `bfloat16[8,128] @ bf16[128,128] -> f32[8,128]` 的矩阵乘法计算，使用脉动阵列架构。
+
+- **VPU** (Vector Processing Unit) : 向量处理单元。
+
+    提供常规的数学运算，例如 ReLU 激活函数、向量间的逐点加法或乘法和归约（求和）运算。
+
+- **VMEM** (Vector Memory) : 向量存储单元。
+
+### 矩阵分片计算
+大多数情况下，我们无法将整个矩阵放在 TPU 中，因此需要将矩阵分片计算。
