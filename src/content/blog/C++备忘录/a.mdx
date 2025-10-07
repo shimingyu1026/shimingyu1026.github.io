@@ -1,0 +1,59 @@
+---
+title: C++备忘录
+date: 2025-09-30
+tags: ['C++']
+language: 'Chinese'
+---
+## 类型转换
+使用 `static_cast` 进行类型转换，示例：
+```cpp
+int a = 1;
+double b = static_cast<double>(a);
+```
+
+## 常量和字符串
+尽量使用 `const` 和 `constexpr` 来定义常量和字符串，而不是使用 `#define` 。
+定义全局常量，使用 `inline` 来定义，通常在头文件中定义。
+```cpp
+// 头文件中定义
+inline constexpr  int MAX_VALUE = 100;
+```
+### string
+可以使用`std::getline`来读取一行字符串，示例：
+```cpp
+std::string line;
+std::getline(std::cin >> std::ws, line); // 读取一行字符串，忽略前导空格
+```
+
+使用`.length()`来获取字符串长度。同时作为函数参数时，不要按值传递，而是按引用传递。
+
+对于只读的字符串，使用`std::string_view`来传递，可以减少拷贝，提高性能。
+
+## 内联命名空间 
+内联命名空间`inline namespace`可以用来版本管理，将命名空间内的内容直接暴露出来，而不是通过命名空间来访问。
+```cpp
+inline namespace v1 {
+    void foo() {
+        std::cout << "v1" << std::endl;
+    }
+}
+
+int main() {
+    foo(); // 直接调用foo函数
+    return 0;
+}
+```
+
+## 控制流
+
+### switch 的 [[fallthrough]]
+使用 `[[fallthrough]]` 来表示 switch 的 fallthrough，表明该 case 会 fallthrough 到下一个 case。
+
+### random
+使用梅森旋转算法来生成随机数，示例：
+```cpp
+unsigned seed = 114514;//也可以使用 std::random_device{}() 来生成种子
+std::mt19937 gen(seed);
+std::uniform_int_distribution<int> dist(1, 100);// 生成1到100之间的随机数
+int random_number = dist(gen);
+```
