@@ -58,3 +58,109 @@ std::mt19937 gen(seed);
 std::uniform_int_distribution<int> dist(1, 100);// 生成1到100之间的随机数
 int random_number = dist(gen);
 ```
+
+## 错误处理
+使用断言来处理错误，包含在`<cassert>`头文件中。
+```cpp
+assert(condition);
+```
+可以和错误消息相与，示例：
+```cpp
+assert(condition && "Error message");
+```
+
+使用异常来处理错误，包含在`<exception>`头文件中。
+```cpp
+throw exception;
+```
+同时尽量使用`static_assert`来处理错误，示例：
+```cpp
+static_assert(condition, "Error message");
+```
+
+
+也可以和错误消息相与，示例：
+```cpp
+throw std::runtime_error("Error message");
+```
+## 类型转换
+如果要使用窄转化，可以使用`static_cast`，示例：
+```cpp
+int a = 1;
+double b = static_cast<double>(a);
+```
+### 类型别名
+使用 `using` 来定义类型别名，示例：
+```cpp
+using int_t = int;
+int_t a = 1;
+```
+### auto
+
+要想推断出 `string`类型，需要显示加上`s`:
+```cpp
+auto s = "string";
+```
+### 函数指针
+使用 `using` 来定义函数指针，示例：
+```cpp
+#include <string>
+#include <string_view>
+
+int main()
+{
+    using namespace std::literals; // easiest way to access the s and sv suffixes
+
+    auto s1 { "goo"s };  // "goo"s is a std::string literal, so s1 will be deduced as a std::string
+    auto s2 { "moo"sv }; // "moo"sv is a std::string_view literal, so s2 will be deduced as a std::string_view
+
+    return 0;
+}
+```
+
+## 重载与模板
+### 模板
+将函数使用模板编写分为两步：
+1. 将变量替换为类型模板参数（T 或者 ...）
+2. 将函数替换为函数模板
+
+示例：
+```cpp
+template <typename T>
+T add(T a, T b) {
+    return a + b;
+}
+```
+
+在`C++20`中，可以使用`auto`来推断类型，示例：
+```cpp
+template <typename T>
+auto add(T a, T b) -> std::common_type_t<T, T> {
+    return a + b;
+}
+//等价于
+auto add(auto a, auto b) {
+    return a + b;
+}
+```
+
+非类型模板参数： 是一个具有固定类型的模板参数，它作为占位符，用于替换传递作为模板参数的 constexpr 值
+
+示例：
+```cpp
+#include <iostream>
+
+template <int N> // declare a non-type template parameter of type int named N
+void print()
+{
+    std::cout << N << '\n'; // use value of N here
+}
+
+int main()
+{
+    print<5>(); // 5 is our non-type template argument
+
+    return 0;
+}
+```
+
