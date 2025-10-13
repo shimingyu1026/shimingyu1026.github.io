@@ -353,7 +353,8 @@ val regs = RegInit(VecInit(Seq.fill(length - 1)(0.U(8.W)))) // 一个长度为 l
 ### Decoupled
 Decoupled 是 Chisel 中的一个抽象类，它有一些具体的实现类，比如 `DecoupledIO`、`DecoupledIOBundle` 等。一个函数的参数使用 `Decoupled[]` 可以接受这些具体的实现类，示例：
 主要使用在声明接口时，将数据放入 `bits` 当中，并声明 `valid` 和 `ready` 信号。
-```Scala
+
+```scala
 class DecoupledModule[T <: Data](ioType: T) extends Module {
     val io = IO(new Bundle {
         val in = Flipped(Decoupled(ioType))
@@ -365,7 +366,8 @@ class DecoupledModule[T <: Data](ioType: T) extends Module {
 
 ### Queues
 Queue 是一个先进先出的 FIFO ， 端口均采用 Decoupled 接口。简单示例：
-```Scala
+
+```scala
 class QueueModule[T <: Data](ioType: T, entries: Int) extends MultiIOModule {
   val in = IO(Flipped(Decoupled(ioType)))
   val out = IO(Decoupled(ioType))
@@ -378,7 +380,8 @@ Arbiters 是由组合逻辑实现的，将n个 `DecoupledIO` 路由到唯一的 
 - `Arbiter` ：优先考虑指数较低的生产者
 - `RRArbiter` ：循环仲裁
 简单示例：
-```Scala
+
+```scala
 class ArbiterModule[T <: Data](ioType: T, n: Int) extends MultiIOModule {
   val in = IO(Vec(n, Flipped(Decoupled(ioType))))
   val out = IO(Decoupled(ioType))
@@ -391,7 +394,8 @@ class ArbiterModule[T <: Data](ioType: T, n: Int) extends MultiIOModule {
 ### 更多标准单元查阅 Cheatsheet
 
 ## Scala 高阶函数的应用
-```Scala
+
+```scala
 io.out := (taps zip io.consts).map { case (a, b) => a * b }.reduce(_ + _)
 ```
 上面这个语句可以实现将 `taps` 和 `io.consts` 的每个元素相乘，然后求和。也可使用匿名函数 `(a, b) => a + b` 来实现。
@@ -400,7 +404,7 @@ io.out := (taps zip io.consts).map { case (a, b) => a * b }.reduce(_ + _)
 
 ### 抽象类
 抽象类是一种不能被实例化的类，只能被继承。其中有一些抽象方法，需要子类实现。
-```Scala
+```scala
 abstract class MyAbstractClass {
   def myFunction(i: Int): Int
   val myValue: String
@@ -416,7 +420,7 @@ val concreteClass = new ConcreteClass()      // Legal!
 
 ### Traits
 一个class 可以继承多个Traits，示例：
-```Scala
+```scala
 trait HasFunction {
   def myFunction(i: Int): Int
 }
@@ -431,7 +435,7 @@ class MyClass extends HasFunction with HasValue {
 ```
  ### Objects
  单例对象类似于 Java 中的静态类，可以直接引用它
-```Scala
+```scala
 object MyObject {
   def hi: String = "Hello World!"
   def apply(msg: String) = msg
@@ -443,7 +447,7 @@ println(MyObject("This message is important!")) // equivalent to MyObject.apply(
 ### 伴生对象
 当一个类与一个对象具有相同的名称时，这个类和对象称为伴生类和伴生对象。 使用 `new` 示例化类，直接调用则引用对象。
 可以实现一个伴生对象的apply方法，以简化实例化。
-```Scala
+```scala
 class MyClass(val name: String)
 object MyClass {
   val defaultName = "John"
@@ -455,7 +459,8 @@ val myClass = MyClass("John")
 
 ### Case Classes
 Case Classes 是一种特殊的类，通常用于大量参数的配置，其构造函数还能用来检验参数的合法性。
-```Scala
+
+```scala
 case class SomeGeneratorParameters(
     someWidth: Int,
     someOtherWidth: Int = 10,

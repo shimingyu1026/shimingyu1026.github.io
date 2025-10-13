@@ -23,6 +23,9 @@ importers:
       '@playform/compress':
         specifier: ^0.2.0
         version: 0.2.0(@types/node@24.7.0)(@vercel/functions@2.2.13)(jiti@2.6.1)(rollup@4.52.4)(typescript@5.9.3)(yaml@2.8.1)
+      '@unocss/reset':
+        specifier: ^66.5.2
+        version: 66.5.2
       '@waline/client':
         specifier: ^3.6.0
         version: 3.6.0(typescript@5.9.3)
