@@ -1,0 +1,39 @@
+---
+title: 'GEM5 bootcamp'
+description: 'GEM5 bootcamp'
+publishDate: '2025-10-17'
+tags: ['GEM5']
+language: 'Chinese'
+---
+
+## m5ops
+m5指令码用于模拟工作负载和模拟器之间进行通信，最主要的op有：
+- exit [delay]: 退出模拟器，[delay] 为退出延迟，单位为cycles，默认为0。
+- workbegin: 工作负载开始，通常在模拟器启动时调用。
+- workend: 工作负载结束，通常在模拟器结束时调用。
+- checkpoint [delay [period]]: 检查点，[delay] 为检查点延迟，单位为cycles，[period] 为检查点周期，单位为cycles，默认为0。
+
+
+m5ops 主要有两个作用：标注工作负载和在磁盘映像中调用 gem5-bridge
+
+### 在 workload 中使用 m5ops
+
+1. 编译 m5ops library
+首先我们要进入 [gem5/util/m5](https://github.com/gem5/gem5/tree/stable/util/m5) 目录,运行 `scons [{TARGET_ISA}.CROSS_COMPILE={TARGET_ISA CROSS COMPILER}] build/{TARGET_ISA}/out/m5` 来编译 m5ops library。
+编译出的 `m5`用于命令行，`libm5.a`用于C/C++链接（在C++里使用头文件`<gem5/m5ops.h>`，在GCC编译选项中加上`-Igem5/include` `-Lgem5/util/m5/build/{TARGET_ISA}/out` `-lm5` ）
+
+
+gem5 的标准库对于部分m5ops有默认行为。例如，当标准库的 Simulator 遇到 m5_work_begin 时，它默认会自动执行 m5.stats.reset()。
+
+这样做的目的是为了清零统计数据，确保性能测量只针对 m5_work_begin 和 m5_work_end 之间的“感兴趣区域”（ROI）。如果想修改这个行为，可以使用 on_exit_event 参数来覆盖它。
+
+## Synthetic Traffic Generation
+合成流量组件是一个用于生成合成流量的工具，主要用来模拟内存访问，而绕过cpu的模拟。主要分为LinearGenerator/RandomGenerator，有以下几个参数：
+- num_cores: 核心数
+- duration: 持续时间
+- rate: 内存请求的最大速率
+- block_size: 每次访问读写的块大小
+- min_addr/max_addr: 内存地址范围
+- rd_perc： 读请求的比例
+- data_limit： 数据量限制，如果写0就是无限制
+
