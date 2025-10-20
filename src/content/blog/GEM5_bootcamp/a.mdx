@@ -28,12 +28,32 @@ gem5 的标准库对于部分m5ops有默认行为。例如，当标准库的 Sim
 这样做的目的是为了清零统计数据，确保性能测量只针对 m5_work_begin 和 m5_work_end 之间的“感兴趣区域”（ROI）。如果想修改这个行为，可以使用 on_exit_event 参数来覆盖它。
 
 ## Synthetic Traffic Generation
-合成流量组件是一个用于生成合成流量的工具，主要用来模拟内存访问，而绕过cpu的模拟。主要分为LinearGenerator/RandomGenerator，有以下几个参数：
+合成流量组件是一个用于生成合成流量的工具，主要用来模拟内存访问，而绕过cpu的模拟。主要分为LinearGenerator/RandomGenerator(都来自于 AbstractGenerator，在 [gem5/src/python/gem5/components/processors](https://github.com/gem5/gem5/tree/stable/src/python/gem5/components/processors)可以看到所有Generator的实现)，有以下几个参数：
 - num_cores: 核心数
 - duration: 持续时间
 - rate: 内存请求的最大速率
-- block_size: 每次访问读写的块大小
+- block_size: 每次访问读写的字节大小
 - min_addr/max_addr: 内存地址范围
 - rd_perc： 读请求的比例
 - data_limit： 数据量限制，如果写0就是无限制
 
+### 创建自己的 Generator
+
+实用函数：`partition_range()`，将一个范围划分为多个子范围，数量为num_partitions
+
+所有的操作都是由 `XXXXCores` 类来完成的，这个类是 Generator 的子类，主要负责生成流量。
+
+我们可以定义自己的 Generator 类，继承自 `AbstractGenerator` 类,在 super().__init__() 中我们需要传递一个列表，这个列表是使用的各个核心。
+
+## Cores
+CPU 核的模拟是 gem5 的核心功能，其部分分类如下图所示：
+![CPU 核的分类](./cpu.png)
+
+### SimpleCPU
+
+- Atomic：用于预热和快速前进
+- Functional： 有后门访问内存，加载执行二进制文件
+- Timing： 模拟时序，模拟时钟和时钟周期
+
+### O3CPU
+乱序执行的CPU，模拟了分支预测，缓存，内存访问等。
