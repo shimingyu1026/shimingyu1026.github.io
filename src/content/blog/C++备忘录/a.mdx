@@ -165,3 +165,91 @@ int main()
 }
 ```
 
+## 引用与指针
+### 引用
+在函数调用中，使用引用可以避免拷贝，提高性能。
+```cpp
+void foo(int& a) {
+    a = 10;
+}
+int main() {
+    int a = 1;
+    foo(a);
+    return 0;
+}
+### 指针
+空指针：`nullptr`
+使用 `const` 来修饰指针，可以指向常量。
+在使用auto推导指针时，优先使用`auto*`
+```cpp
+int main() {
+    int x = 10;
+    int* ptr_x = &x;
+
+    // `auto` 推导指针
+    auto c = ptr_x; // c 被推导为 int*
+
+    // `auto*` 推导指针
+    auto* d = ptr_x; // d 被推导为 int*
+
+    // `auto*` 的强制性
+    auto* e = x; // 编译错误！
+                 // e 被强制为指针类型，但 x (int) 不是一个指针
+}
+```
+### std::optional
+使用 `std::optional` 来处理可能为空的情况，示例：
+```cpp
+#include <iostream>
+#include <vector>
+#include <optional> // 1. 包含头文件
+
+// 2. 返回一个 std::optional<int>
+// 这能清楚地表明函数可能返回一个 int，也可能什么都不返回
+std::optional<int> find_index_optional(const std::vector<int>& vec, int value_to_find) {
+    for (int i = 0; i < vec.size(); ++i) {
+        if (vec[i] == value_to_find) {
+            return i; // 找到，返回包含值的 optional (自动构造)
+        }
+    }
+    // 3. 返回一个"无值"的 optional
+    return std::nullopt; // std::nullopt 是 "无值" 的常量
+}
+
+int main() {
+    std::vector<int> data = {10, 20, 30, 40};
+
+    // 案例 1: 查找存在的值
+    std::optional<int> result1 = find_index_optional(data, 30);
+
+    // 4. 检查它是否包含值 (非常方便直观)
+    if (result1.has_value()) {
+    // 也可以简写为: if (result1) {
+        // 5. 使用 .value() 或 * 来安全访问值
+        std::cout << "Optional 法 (找到): 索引在 " << result1.value() << std::endl;
+        // 也可以写为: std::cout << *result1 << std::endl;
+    } else {
+        std::cout << "Optional 法 (未找到)" << std::endl;
+    }
+
+    // 案例 2: 查找不存在的值
+    std::optional<int> result2 = find_index_optional(data, 99);
+    if (result2) { // 使用简写形式
+        std::cout << "Optional 法 (找到): 索引在 " << *result2 << std::endl;
+    } else {
+        std::cout << "Optional 法 (未找到)" << std::endl;
+    }
+}
+```
+
+
+## 枚举和结构体
+结构体中可以使用模板，示例：
+```cpp
+template <typename T>
+struct MyStruct {
+    T value;
+};
+MyStruct<int> my_struct;
+my_struct.value = 1;
+```
