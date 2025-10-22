@@ -51,9 +51,127 @@ CPU 核的模拟是 gem5 的核心功能，其部分分类如下图所示：
 
 ### SimpleCPU
 
-- Atomic：用于预热和快速前进
+- Atomic：用于预热和快速前进，忽略访存延迟
 - Functional： 有后门访问内存，加载执行二进制文件
 - Timing： 模拟时序，模拟时钟和时钟周期
 
 ### O3CPU
 乱序执行的CPU，模拟了分支预测，缓存，内存访问等。
+RiscvO3CPU(from m5.objects import RiscvO3CPU)内部有以下几个参数：
+- width：fecth、decode、rename、dispatch、execute、writeback、commit 的宽度
+- rob_size：重排序缓冲区的大小
+- num_int_regs：整数寄存器数
+- num_fp_regs：浮点寄存器数
+
+### Statistics 阅读
+
+- simOps: 模拟操作数，即模拟器执行的指令数
+- numCycles: 模拟器执行的时钟周期数
+- simSeconds: 模拟器执行的时间，单位为秒(cpu的时间)
+- hostSeconds: 主机执行的时间，单位为秒(host的时间)
+
+### 自定义 CPU 
+
+这是一个非常好的总结思路。基于您提供的代码，这里为您提炼了一个通用的、分层封装的 gem5 CPU 自定义方法，非常适合放入您的笔记中。
+
+-----
+
+### **通用的 gem5 CPU 自定义方法 (分层封装)**
+
+在 gem5 中，自定义 CPU 的最佳实践是采用“分层封装”的设计模式。这种方法将 gem5 底层的复杂模拟对象（SimObject）逐步抽象为高层的、易于使用的“组件”（Component）。
+
+这个流程可以分为四个主要层次：
+
+层次 1：定义“CPU 核心” (Core)
+
+  * **目的：** 封装 gem5 底层的 SimObject，将“高级”参数映射到“低级”参数。
+  * **做法：**
+    1.  创建一个类（例如 `MyO3Core`），它继承自 gem5 底层的 CPU 模型（例如 `RiscvO3CPU` 或 `X86O3CPU`）。
+    2.  在 `__init__` 中接收高级参数（如 `width`）。
+    3.  将这些高级参数赋值给底层 SimObject 的具体参数（如 `self.fetchWidth = width`, `self.decodeWidth = width` 等）。
+
+
+```python
+# 层次 1：定义核心引擎
+from m5.objects import RiscvO3CPU
+class MyO3Core(RiscvO3CPU):
+    def __init__(self, width, rob_size):
+        super().__init__()
+        self.fetchWidth = width
+        self.decodeWidth = width
+        self.commitWidth = width
+        self.numROBEntries = rob_size
+        # ... 设置分支预测器等
+```
+
+层次 2：定义“标准核心” (StdCore)
+
+  * **目的：** 将“核心”注册为 gem5 标准库组件，并指定其指令集（ISA）。
+  * **做法：**
+    1.  创建一个类（例如 `MyO3StdCore`），它继承自 `BaseCPUCore`。
+    2.  在 `__init__` 中，实例化第 1 层的“核心”（`MyO3Core`）。
+    3.  调用父类 `super().__init__`，传入实例化的核心和对应的 `ISA`（例如 `ISA.RISCV`）。
+
+```python
+# 层次 2：将核心组件化并指定ISA
+from gem5.isas import ISA
+from gem5.components.processors.base_cpu_core import BaseCPUCore
+class MyO3StdCore(BaseCPUCore):
+    def __init__(self, width, rob_size):
+        # 实例化第1层的核心
+        core = MyO3Core(width, rob_size)
+        # 注册为标准组件，并指定ISA
+        super().__init__(core, ISA.RISCV)
+```
+
+层次 3：定义“处理器” (Processor)
+
+  * **目的：** 将“核心”组装成一个完整的“处理器”，并定义它是单核还是多核。
+  * **做法：**
+    1.  创建一个类（例如 `MyO3Processor`），它继承自 `BaseCPUProcessor`。
+    2.  在 `__init__` 中，创建一个包含一个或多个“标准核心”（来自第 2 层）的列表。
+    3.  调用父类 `super().__init__`，传入这个 `cores` 列表。
+
+```python
+# 层次 3：定义处理器（单核或多核）
+from gem5.components.processors.base_cpu_processor import BaseCPUProcessor
+class MyO3Processor(BaseCPUProcessor):
+    def __init__(self, width, rob_size):
+        # 实例化第2层的核心，并放入列表
+        cores = [MyO3StdCore(width, rob_size)]
+        # 注册为处理器
+        super().__init__(cores)
+        # (可选) 在这里保存参数，用于后续分析
+        self._width = width 
+```
+层次 4：创建“具体配置” (Configuration)
+
+  * **目的：** 提供最终的、易于调用的“产品”类，固化所有配置参数。
+  * **做法：**
+    1.  创建一个类（例如 `MyBigCPU` 或 `MySmallCPU`），它继承自第 3 层的“处理器”。
+    2.  在 `__init__` 中，调用父类 `super().__init__`，并传入所有**具体的配置数值**。
+
+```python
+# 层次 4：定义最终的“产品型号”
+class MyBigCPU(MyO3Processor):
+    def __init__(self):
+        super().__init__(
+            width=10,
+            rob_size=40,
+            # ... 其他具体参数
+        )
+
+class MySmallCPU(MyO3Processor):
+    def __init__(self):
+        super().__init__(
+            width=2,
+            rob_size=30,
+            # ... 其他具体参数
+        )
+```
+
+## Cache Hierarchy
+主要有两种缓存层次结构：
+- Classic Cache： 简单快速，灵活性不足
+- Ruby: 灵活性高，包含多种缓存一致性
+
