@@ -175,3 +175,30 @@ class MySmallCPU(MyO3Processor):
 - Classic Cache： 简单快速，灵活性不足
 - Ruby: 灵活性高，包含多种缓存一致性
 
+## memory system
+标准库将 DRAM 等内存模型封装为 `MemorySystem`，有一些已经实现的例子：`muti_channel`、`single_channel`
+
+### 添加新的内存
+想要添加新的内存模型，需要保证在[gem5/components/memory/dram_interfaces](https://github.com/gem5/gem5/tree/stable/src/python/gem5/components/memory/dram_interfaces)中有一个对应的实现,然后导入它。
+假设我们需要单通道lpddr2，通常写法为：
+```python
+from typing import Optional
+
+from gem5.components.memory.abstract_memory_system import AbstractMemorySystem
+from gem5.components.memory.dram_interfaces.lpddr2 import LPDDR2_S4_1066_1x32
+from gem5.components.memory.memory import ChanneledMemory
+
+
+def SingleChannelLPDDR2(
+    size: Optional[str] = None,
+) -> AbstractMemorySystem:
+    return ChanneledMemory(LPDDR2_S4_1066_1x32, 1, 64, size=size)
+```
+
+### CommMonitor
+可以监控两个端口之间的通信，对时间没有影响。如下图所示：
+
+![CommMonitor](./CommMonitor.png)
+
+## 全系统仿真
+全系统仿真需要提供一个包含操作系统以及任何必要软件或数据的磁盘镜像以及与模拟架构兼容的内核二进制文件来启动操作系统。
