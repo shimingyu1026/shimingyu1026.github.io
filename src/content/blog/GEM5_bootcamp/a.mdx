@@ -202,3 +202,116 @@ def SingleChannelLPDDR2(
 
 ## 全系统仿真
 全系统仿真需要提供一个包含操作系统以及任何必要软件或数据的磁盘镜像以及与模拟架构兼容的内核二进制文件来启动操作系统。
+
+
+
+## Checkpoints
+
+检查点 (Checkpoint) 是 gem5 仿真器在某一时刻的完整状态快照。它将模拟系统（CPU 寄存器、内存、设备状态等）的所有信息保存到磁盘。
+
+其最主要的目的，是**跳过**全系统仿真中极其耗时的**操作系统 (OS) 启动阶段**，从而快速开始对“感兴趣区域”（ROI）的详细性能分析。
+
+### 创建检查点 (Creating Checkpoints)
+
+有两种主要方式来创建检查点：
+
+1.  **使用 m5ops (在模拟系统内部)**
+
+      * 如 `m5ops` 部分所述，可以在工作负载中编译并调用 `m5 checkpoint` 指令。
+      * 详情参见 [gem5/util/m5](https://github.com/gem5/gem5/tree/stable/util/m5) 目录。
+
+2.  **使用 Simulator (在 Python 脚本中)**
+
+      * 这是更常用和更灵活的方法，通常与 `on_exit_event` 处理器绑定。
+      * 最佳实践是响应 `WORKBEGIN` 事件（即 OS 启动完毕，工作负载即将开始时）来创建检查点。
+
+
+```python
+# 示例：在 OS 启动后 (WORKBEGIN) 创建检查点
+from gem5.simulate.simulator import Simulator, ExitEvent
+
+def handle_workbegin():
+    print("OS Booted. Taking checkpoint...")
+    # 将快照保存到 m5out/my-cpt-dir 目录
+    simulator.save_checkpoint("my-cpt-dir")
+    # yield True 会继续运行，yield False 会在此处停止
+    yield True 
+
+simulator = Simulator(
+    board=board,
+    on_exit_event = {
+        # 将 handle_workbegin 注册到 WORKBEGIN 事件
+        ExitEvent.WORKBEGIN: handle_workbegin()
+    }
+)
+simulator.run()
+```
+
+### 恢复检查点 (Restoring from Checkpoints)
+
+恢复检查点是在 Python 配置脚本中设置的。你需要指定包含快照的目录路径。
+
+```python
+# 示例：从检查点恢复
+board.set_kernel_disk_workload(
+    kernel=obtain_resource("..."),
+    disk_image=obtain_resource("..."),
+    # 指定要加载的检查点目录
+    checkpoint_path="my-cpt-dir" 
+)
+
+# 像往常一样创建和运行模拟器
+simulator = Simulator(board=board)
+simulator.run()
+```
+
+### 检查点兼容性规则 (Compatibility)
+
+**这是使用检查点最关键的部分。** 恢复时的配置必须与创建时的配置在“架构”层面上严格匹配。
+
+  * **必须严格匹配的配置：**
+
+      * **gem5 二进制文件**：必须使用完全相同的 gem5 编译版本。
+      * **SimObject 层次结构**：Python 脚本生成的组件树（特别是名称）必须一致。
+      * **CPU 核心数**：OS 已经启动并识别了 N 个核心，恢复时必须也是 N 个。
+      * **物理内存大小**：OS 已经知道了内存大小，不能更改。
+      * **磁盘镜像 / 内核**：必须是创建快照时所用的相同文件。
+
+  * **可以（且推荐）更改的配置：**
+
+      * **CPU 类型 (最常用\!)**：这是检查点的核心价值。
+          * 创建时：使用快速的 `CPUTypes.KVM` 或 `CPUTypes.ATOMIC`。
+          * 恢复时：切换到详细的 `CPUTypes.TIMING` 或 `CPUTypes.O3`。
+      * **CPU 时钟频率**：通常是安全的，被视为微架构细节。
+      * **缓存配置 (Classic Cache)**：gem5 的 Classic 缓存状态**不会**被保存在检查点中。因此，你可以在创建时使用 `NoCache`，在恢复时添加完整的 L1/L2 缓存（恢复后缓存是“冷”的）。
+
+### 最佳实践：使用 `SimpleSwitchableProcessor`
+
+为了方便地在 `KVM`（创建）和 `Timing`（恢复）之间切换，标准库提供了 `SimpleSwitchableProcessor`。
+
+```python
+from gem5.components.processors.cpu_types import CPUTypes
+from gem5.components.processors.simple_switchable_processor import (
+    SimpleSwitchableProcessor,
+)
+
+# 1. 配置可切换处理器
+processor = SimpleSwitchableProcessor(
+    starting_core_type=CPUTypes.KVM,    # 启动和创建检查点时使用
+    switch_core_type=CPUTypes.TIMING,  # 恢复和详测时使用
+    isa=ISA.X86,
+    num_cores=2,
+)
+
+# 2. 在 WORKBEGIN 处理器中调用 switch()
+def handle_workbegin():
+    print("OS Booted. Switching to TIMING CPU...")
+    m5.stats.reset()  # 重置统计
+    processor.switch()  # 执行切换
+    yield False       # 必须 yield False 来重载仿真循环
+
+# 3. 正常恢复
+# ...
+# board.set_kernel_disk_workload(checkpoint_path="...")
+# ...
+```
