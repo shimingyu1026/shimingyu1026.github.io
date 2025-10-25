@@ -315,3 +315,314 @@ def handle_workbegin():
 # board.set_kernel_disk_workload(checkpoint_path="...")
 # ...
 ```
+
+
+
+## Sampling (采样)
+
+由于详细的 gem5 仿真（尤其是全系统模式）可能非常耗时，采样技术被用来加速仿真过程，同时尽量保持结果的准确性。其核心思想是：只对程序执行中最具代表性或统计上显著的部分进行详细模拟。
+
+主要分为两大类：目标采样和统计采样。
+
+### Targeted Sampling (目标采样)
+
+目标采样的核心思想是：程序的执行行为通常具有阶段性 (Phases)，并且很多阶段会重复出现。我们只需要识别出这些独特的、有代表性的阶段（称为“采样点”），并只对它们进行详细模拟，然后根据它们在总执行中所占的“权重”来加权求和，即可估算出整体性能。
+
+代表性方法：**SimPoint**, **LoopPoint**。
+
+#### SimPoint 工作流 (Workflow) in gem5
+
+SimPoint 使用**固定长度的指令数**（例如 1 亿条）作为“区域”(Region) 来切分程序，然后通过分析“基本块向量”(Basic Block Vector, BBV) 来识别代表点。
+
+**Step 1: 分析 (Analysis) - 收集 BBV 指纹**
+
+  * **目的:** 使用快速 CPU 跑完整个程序，记录每个“区域”的 BBV 指纹。
+  * **工具:** gem5 的 `SimPoint` 探针监听器 (`src/cpu/simple/probes/SimPoint.py`)。
+  * **方法:**
+    1.  配置一个使用 **`ATOMIC` CPU** 的 gem5 脚本 (例如 `simpoint-analysis.py`)。
+
+    2.  将 `SimPoint` 探针附加到 CPU 核心，并指定 `interval` (区域大小，如 1 百万条指令)。
+
+        ```python
+        # 在 simpoint-analysis.py 中
+        from gem5.components.processors.cpu_types import CPUTypes
+        processor = SimpleProcessor(cpu_type=CPUTypes.ATOMIC, ...)
+        # ...
+        # interval_length = 1_000_000
+        processor.get_cores()[0].core.addSimPointProbe(interval_length)
+        ```
+
+    3.  运行仿真：
+
+        ```bash
+        gem5 -re --outdir=simpoint-analysis-m5out simpoint-analysis.py
+        ```
+  * **产出:** `simpoint-analysis-m5out/simpoint.bb.gz` 文件，包含了所有区域的 BBV 信息 (格式为 `T:<bb_id>:<inst_count> ...`)。
+
+**Step 2: 聚类 (Clustering) - 寻找代表点与权重**
+
+  * **目的:** 使用外部工具处理 BBV 数据，通过聚类算法找出 K 个“代表性区域”(SimPoints) 及其权重。
+
+  * **工具:** SimPoint 官方工具 (例如 SimPoint 3.2)。
+
+  * **方法:** 运行聚类脚本 (例如 `simpoint3.2-cmd.sh`)，它会调用 SimPoint 工具。
+
+    ```bash
+    # simpoint3.2-cmd.sh 内部命令示例
+    path/to/simpoint \
+        -inputVectorsGzipped -loadFVFile simpoint-analysis-m5out/simpoint.bb.gz \
+        -k 5 `# 期望聚类数` \
+        -saveSimpoints results.simpts `# 输出代表点文件` \
+        -saveSimpointWeights results.weights `# 输出权重文件`
+    ```
+
+  * **产出:**
+
+      * `results.simpts`: 列出被选为代表的“区域 ID”及其对应的“SimPoint ID (聚类标签)”。格式: `<Region ID> <SimPoint ID>`。
+      * `results.weights`: 列出每个“SimPoint ID”对应的权重 (0 到 1 之间)。格式: `<Weight> <SimPoint ID>`。
+
+**Step 3: 创建检查点 (Creating Checkpoints)**
+
+  * **目的:** 为**每一个**“代表性区域”的**起点**创建一个 gem5 检查点，以便后续快速“瞬移”到该点。
+  * **工具:** gem5 的 `SimPoint` 辅助类、`set_se_simpoint_workload` 函数、`simpoints_save_checkpoint_generator`。
+  * **方法:**
+    1.  配置一个使用 **`ATOMIC` CPU** 的 gem5 脚本 (例如 `simpoint-checkpoint.py`)。
+
+    2.  使用 `SimPoint` 类加载 `results.simpts` 和 `results.weights` 文件，并设置 `simpoint_interval` (必须与 Step 1 一致) 和 `warmup_interval` (用于 Step 4 的预热长度)。
+
+        ```python
+        # 在 simpoint-checkpoint.py 中
+        from gem5.utils.simpoint import SimPoint
+        simpoint_info = SimPoint(
+            simpoint_interval=1_000_000,
+            simpoint_file_path=Path("results.simpts"),
+            weight_file_path=Path("results.weights"),
+            warmup_interval=1_000_000 # 为下一步准备
+        )
+        ```
+
+    3.  使用 `set_se_simpoint_workload` 配置工作负载，它会自动在每个 SimPoint 区间开始时触发 `SIMPOINT_BEGIN` 事件。
+
+    4.  使用 `simpoints_save_checkpoint_generator` 作为 `SIMPOINT_BEGIN` 事件的处理器，它会自动在**属于代表点**的区域起点保存检查点。
+
+        ```python
+        # 在 simpoint-checkpoint.py 中
+        from gem5.simulate.exit_event_generators import simpoints_save_checkpoint_generator
+        dir = Path("simpoint-checkpoints") # 保存检查点的目录
+        simulator = Simulator(
+            board=board,
+            on_exit_event={
+                ExitEvent.SIMPOINT_BEGIN: simpoints_save_checkpoint_generator(dir, simpoint_info)
+            },
+        )
+        ```
+
+    5.  运行仿真：
+
+        ```bash
+        gem5 -re --outdir=simpoint-checkpoint-m5out simpoint-checkpoint.py
+        ```
+  * **产出:** 在 `simpoint-checkpoints` 目录下生成多个检查点文件夹 (数量等于 SimPoint 的数量)。
+
+**Step 4: 运行 SimPoints & 预测 (Running SimPoints & Prediction)**
+
+  * **目的:** 使用**详细的 CPU 模型**（如 `O3CPU` 或 `TIMING`）从每个检查点恢复，运行对应的 SimPoint 区间（包含预热和测量），收集性能数据，最后加权求和得到预测值。
+  * **工具:** 配置详细系统的 gem5 脚本 (例如 `simpoint-run.py`)，后处理脚本 (例如 `predict_overall_ipc.py`)。
+  * **方法:**
+    1.  配置一个使用**详细 CPU** (`O3` 或 `TIMING`) 和**匹配基线**的缓存/内存系统的脚本 (`simpoint-run.py`)。
+
+    2.  再次使用 `SimPoint` 类加载 `.simpts` 和 `.weights` 文件。
+
+    3.  使用 `set_se_simpoint_workload` 并**传入 `checkpoint` 参数**来从指定的检查点恢复。
+
+    4.  使用一个“两阶段”的事件处理器 (例如 `max_insts` 生成器) 来处理 `MAX_INSTS` 事件：
+
+          * **第一次触发 (预热结束):** 运行 `warmup_interval` 指令后触发。重置统计 (`m5.stats.reset()`)，安排下一次退出事件（在 `simpoint_interval` 指令后）。
+          * **第二次触发 (测量结束):** 运行 `simpoint_interval` 指令后触发。标志测量完成。
+
+    5.  使用 Shell 脚本 (例如 `run-all-simpoint.sh`) **并行**启动多个 `simpoint-run.py` 实例，每个实例通过 `--sid` 参数加载不同的检查点。
+
+        ```bash
+        # run-all-simpoint.sh 内部示例
+        gem5 -re --outdir=simpoint0-run simpoint-run.py --sid=0 &
+        gem5 -re --outdir=simpoint1-run simpoint-run.py --sid=1 &
+        # ...
+        wait
+        ```
+
+    6.  运行后处理脚本 (`predict_overall_ipc.py`) 读取每个 `simpointX-run/stats.txt` 中的 IPC 和 `simout.txt` 中的权重，计算加权平均 IPC，并与基线 (`full-detailed-run.py` 的结果) 比较误差。
+
+        ```python
+        # predict_overall_ipc.py 核心逻辑
+        predicted_ipc = 0.0
+        for i in range(num_simpoints):
+            # 从 stats.txt 读取 simpoint_ipcs[i]
+            # 从 simout.txt 读取 simpoint_weights[i]
+            predicted_ipc += simpoint_ipcs[i] * simpoint_weights[i]
+        # 从 baseline/stats.txt 读取 baseline_ipc
+        # 比较 predicted_ipc 和 baseline_ipc
+        ```
+
+#### LoopPoint & ELFies
+
+  * **LoopPoint:** 与 SimPoint 类似，但使用**程序的“循环”**（特别是循环迭代）作为采样单元，而非固定指令数。分析阶段需要额外收集循环执行信息。
+  * **ELFies:** 一种特殊的检查点技术，创建\*\*“检查点可执行文件”**，可以非常快速地恢复程序状态到某个点（通常是 LoopPoint 找到的循环入口）。gem5 不支持创建 ELFies，但可以通过 `ELFieInfo` 类**在 SE 模式下运行\*\*预先生成的 ELFies。它通过精确的 PC 地址和执行次数来标记 ROI 的开始 (`start`) 和结束 (`end`)，并自动在开始时重置统计、在结束时转储统计。
+
+### Statistical Sampling (统计采样)
+
+统计采样的核心思想是：不必分析程序的行为模式，而是通过对整个执行过程中**大量、随机或周期性抽取的小样本**进行详细模拟，然后**求平均**来估算程序的**平均性能**（如平均 IPC）。
+
+代表性方法：**SMARTS**, **FSA**。
+
+#### SMARTS 工作流 (Workflow) in gem5
+
+SMARTS 实现了一种\*\*“快进-预热-详测”\*\*的循环。
+
+  * **参数:** 需要预先设定：
+
+      * `n`: 总样本数。
+      * `k`: 系统采样间隔 (多少个 `U` 跳过一次)。
+      * `U`: 采样单元大小 (每次详测的指令数)。
+      * `w`: 详细预热期长度 (每次详测前的预热指令数)。
+
+  * **机制:**
+
+    1.  **快进 (Fast-Forward):** 使用 `ATOMIC` CPU 跳过 `(k-1)*U - w` 条指令 (近似值，取决于具体实现)。
+    2.  **切换到详细 CPU:** 例如 `O3CPU`。
+    3.  **预热 (Warmup):** 运行 `w` 条指令 (使用 `O3CPU`)，**不统计**。
+    4.  **重置统计:** `m5.stats.reset()`。
+    5.  **详测 (Detailed Sample):** 运行 `U` 条指令 (使用 `O3CPU`)，**统计**。
+    6.  **切换回快速 CPU:** `ATOMIC` CPU。
+    7.  重复步骤 1-6，共 `n` 次。
+
+  * **gem5 实现:**
+
+      * 使用 `SimpleSwitchableProcessor` 在 `ATOMIC` 和 `O3`/`TIMING` 之间切换。
+      * 使用一个事件生成器 (例如 `smarts_generator`) 配合 `_set_simpoint` 或 `schedule_max_insts` 来精确控制每个阶段的开始和结束，以及 CPU 的切换、统计的重置和转储。参考 `SMARTS.py` 示例。
+
+    **示例 1: 配置 `SimpleSwitchableProcessor` 和计算参数 (类似 `SMARTS.py`)**
+
+    ```python
+    import math
+    from gem5.components.processors.cpu_types import CPUTypes
+    from gem5.components.processors.simple_switchable_processor import SimpleSwitchableProcessor
+
+    processor = SimpleSwitchableProcessor(
+        starting_core_type=CPUTypes.ATOMIC, # 用于快进
+        switch_core_type=CPUTypes.O3,       # 用于预热和详测
+        isa=ISA.X86,
+        num_cores=1,
+    )
+
+    # 假设已知程序长度和目标样本数
+    program_length = 9115640
+    target_samples = 50
+    ideal_U = 1000 # 设定详测长度
+    ideal_W = 2 * ideal_U # 设定预热长度
+
+    # 计算 k
+    ideal_region_length = math.ceil(program_length / target_samples)
+    ideal_k = math.ceil(ideal_region_length / ideal_U)
+    ```
+
+    **示例 2: `smarts_generator` 的核心逻辑 (简化版)**
+
+    ```python
+    import m5
+    from gem5.simulate.exit_event import ExitEvent
+
+    def smarts_generator(k, U, W, processor):
+        warmup_start_offset = U * (k - 1) - W # 近似的快进长度
+        warmup_end_offset = W
+        detailed_end_offset = U
+
+        while True:
+            # --- 阶段 1: 到达预热起点 ---
+            print("Switching to Detailed CPU for Warmup")
+            processor.switch()
+            # 安排预热结束事件 (W 指令后)
+            simulator.schedule_max_insts(warmup_end_offset)
+            yield False # 重启仿真以应用 CPU 切换和事件
+
+            # --- 阶段 2: 到达预热终点 / 详测起点 ---
+            print("Warmup complete. Resetting stats for detailed measurement.")
+            m5.stats.reset()
+            # 安排详测结束事件 (U 指令后)
+            simulator.schedule_max_insts(detailed_end_offset)
+            yield False # 重启仿真以应用统计重置和事件
+
+            # --- 阶段 3: 到达详测终点 ---
+            print("Detailed measurement complete. Dumping stats.")
+            m5.stats.dump()
+            processor.switch() # 切换回 Atomic CPU
+            # 安排下一次预热起点事件 (需要运行 warmup_start_offset 条指令后)
+            simulator.schedule_max_insts(warmup_start_offset)
+            yield False # 重启仿真以应用 CPU 切换和事件
+
+    # 在 Simulator 中注册 (假设 simulator 已定义)
+    simulator = Simulator(
+        board=board,
+        on_exit_event={
+            # 使用 MAX_INSTS 事件驱动生成器
+            ExitEvent.MAX_INSTS: smarts_generator(ideal_k, ideal_U, ideal_W, processor)
+        }
+    )
+    # 首次启动，安排第一次预热事件
+    simulator.schedule_max_insts(warmup_start_offset) # 或根据实际需要调整初始快进量
+    ```
+
+    *注意：实际的 `SMARTS.py` 使用了 `_set_simpoint` 这种更底层的接口来同时安排多个事件，逻辑会更复杂一些。*
+
+  * **运行与预测:**
+
+    1.  运行 `SMARTS.py` 脚本，它会在 `m5out/stats.txt` 中**多次转储**每个样本的统计数据。
+
+        ```bash
+        gem5 -re --outdir=smarts-m5out SMARTS.py
+        ```
+
+    2.  运行后处理脚本 (例如 `predict_ipc.py`) 读取所有样本的 IPC，计算**算术平均值**作为预测的平均 IPC，并与基线比较。
+
+        ```bash
+        python3 predict_ipc.py --stats_file=smarts-m5out/stats.txt --baseline_file=full-detailed-run-m5out/stats.txt
+        ```
+
+        **示例 3: `predict_ipc.py` 的核心逻辑**
+
+        ```python
+        import re
+
+        def extract_ipc(stats_file):
+            ipcs = []
+            try:
+                with open(stats_file, 'r') as f:
+                    # 使用正则表达式查找所有 IPC 值 (假设格式固定)
+                    # 注意：实际 stats.txt 可能包含多次 dump，需要找到所有相关的 IPC
+                    ipc_values = re.findall(r"system\.processor\.cores.*ipc\s+(\d+\.\d+).*", f.read())
+                    ipcs = [float(v) for v in ipc_values]
+            except FileNotFoundError:
+                print(f"Error: Stats file not found at {stats_file}")
+            return ipcs
+
+        # --- 主逻辑 ---
+        smarts_stats_file = "smarts-m5out/stats.txt"
+        baseline_stats_file = "full-detailed-run-m5out/stats.txt"
+
+        smarts_ipcs = extract_ipc(smarts_stats_file)
+        baseline_ipcs = extract_ipc(baseline_stats_file) # 基线通常只有一个最终IPC
+
+        if not smarts_ipcs or not baseline_ipcs:
+            exit()
+
+        predicted_ipc = sum(smarts_ipcs) / len(smarts_ipcs)
+        baseline_ipc = baseline_ipcs[0] # 取基线的第一个（通常是唯一一个）IPC
+
+        print(f"Number of samples: {len(smarts_ipcs)}")
+        print(f"Predicted Overall IPC: {predicted_ipc}")
+        print(f"Actual Overall IPC: {baseline_ipc}")
+        error = (abs(baseline_ipc - predicted_ipc) / baseline_ipc) * 100
+        print(f"Relative Error: {error}%")
+        ```
+
+
+
