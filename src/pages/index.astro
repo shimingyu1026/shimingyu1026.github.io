@@ -63,7 +63,7 @@ const totalPosts = allPosts.length
       <div class='flex flex-col items-center gap-y-4'>
         <h1 class='text-3xl font-bold'>{config.author}</h1>
         <div class='flex flex-wrap justify-center gap-x-7 gap-y-3'>
-          <Label title='China / SuZhou'>
+          <Label title='China / Beijing'>
             <Icon name='location' class='size-5' slot='icon' />
           </Label>
           <Label
@@ -104,9 +104,9 @@ const totalPosts = allPosts.length
 
     <div id='content' class='animate flex flex-col gap-y-10 md:w-4/5 lg:w-5/6'>
       <Section title='About'>
-        <p class='text-muted-foreground'>Student</p>
+        <p class='text-muted-foreground'>PhD Student</p>
         <p class='text-muted-foreground'>
-          南京大学集成电路学院在读 22 级本科生
+          计算技术研究所在读博士生
         </p>
         <Button title='More about me' class='w-fit self-end' href='/about' variant='ahead' />
       </Section>
@@ -155,6 +155,24 @@ const totalPosts = allPosts.length
     </Section> */
       }
       <Section title='Education'>
+        <Card
+          as='a'
+          heading='计算技术研究所'
+          subheading='体系结构 · 博士'
+          date='September 2026 - June 2031'
+          href='https://www.ict.cas.cn/'
+          class='overflow-hidden pe-28 sm:pe-44'
+        >
+          <!-- Transparent logo from https://asg.ict.ac.cn/images/logo.png -->
+          <img
+            class='pointer-events-none absolute end-4 top-1/2 m-0 h-20 w-20 -translate-y-1/2 object-contain opacity-40 sm:end-6 sm:h-24 sm:w-32'
+            src='/images/ict-logo.png'
+            alt='中国科学院计算技术研究所标志'
+            width='147'
+            height='122'
+            loading='lazy'
+          />
+        </Card>
         <Card
           as='a'
           heading='南京大学'
