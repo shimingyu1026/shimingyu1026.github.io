@@ -35,16 +35,6 @@ try {
     </div>
 
     <div class='calendar-content' hidden={!calendar}>
-      <dl class='activity-stats'>
-        <div><dt>贡献总数</dt><dd data-total>{calendar?.total.toLocaleString('en-US')}</dd></div>
-        <div>
-          <dt>活跃天数</dt><dd><span data-active>{calendar?.activeDays}</span><small>天</small></dd>
-        </div>
-        <div>
-          <dt>单日最高</dt><dd><span data-best>{calendar?.bestDay}</span><small>次</small></dd>
-        </div>
-      </dl>
-
       <div
         class='calendar-scroll'
         tabindex='0'
@@ -83,21 +73,13 @@ try {
       <div class='calendar-caption'>
         <span class='scroll-hint'>左右滑动查看全年</span>
         <span class='legend' aria-label='颜色由浅到深表示贡献由少到多'>
-          少 <i data-level='0'></i><i data-level='1'></i><i data-level='2'></i><i data-level='3'
-          ></i><i data-level='4'></i> 多
+          less <i data-level='0'></i><i data-level='1'></i><i data-level='2'></i><i data-level='3'
+          ></i><i data-level='4'></i> more
         </span>
       </div>
     </div>
 
     <p class='calendar-empty' hidden={!!calendar}>暂时无法加载贡献记录，可以前往 GitHub 查看。</p>
-    <footer class='card-footer'>
-      <span data-updated>{calendar?.updated ?? '贡献数据暂不可用'}</span>
-      <a
-        href='https://github.com/shimingyu1026?tab=overview'
-        target='_blank'
-        rel='noopener noreferrer'>在 GitHub 查看完整记录 <span aria-hidden='true'>↗</span></a
-      >
-    </footer>
   </section>
 </github-activity>
 
@@ -113,16 +95,7 @@ try {
       try {
         const calendar = createCalendar(await fetchContributions())
         if (!this.isConnected) return
-        const values = {
-          total: calendar.total.toLocaleString('en-US'),
-          active: calendar.activeDays,
-          best: calendar.bestDay,
-          range: calendar.range,
-          updated: calendar.updated
-        }
-        for (const [key, value] of Object.entries(values)) {
-          this.querySelector(`[data-${key}]`)!.textContent = String(value)
-        }
+        this.querySelector('[data-range]')!.textContent = calendar.range
         const svg = this.querySelector<SVGSVGElement>('.calendar')!
         svg.setAttribute('viewBox', `0 0 ${calendar.width} 142`)
         svg.setAttribute('aria-label', calendar.summary)
@@ -253,32 +226,8 @@ try {
     color: hsl(var(--muted-foreground));
     font-variant-numeric: tabular-nums;
   }
-  .activity-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    margin: 32px 0 36px;
-  }
-  .activity-stats > div + div {
-    border-left: 1px solid hsl(var(--border));
-    padding-left: 28px;
-  }
-  dt {
-    font-size: 12px;
-    color: hsl(var(--muted-foreground));
-    margin-bottom: 8px;
-  }
-  dd {
-    font-size: clamp(26px, 5vw, 42px);
-    line-height: 1.15;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.04em;
-  }
-  dd small {
-    font-size: 12px;
-    font-weight: 400;
-    color: hsl(var(--muted-foreground));
-    margin-left: 8px;
+  .calendar-content {
+    margin-top: 32px;
   }
   .calendar-scroll {
     overflow-x: auto;
@@ -343,15 +292,6 @@ try {
     display: none;
     margin-right: auto;
   }
-  .card-footer {
-    border-top: 1px solid hsl(var(--border));
-    padding: 18px 0;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 11px;
-    color: hsl(var(--muted-foreground));
-  }
   .calendar-empty {
     padding: 48px 0;
     font-size: 14px;
@@ -379,18 +319,8 @@ try {
     .card-heading {
       flex-wrap: wrap;
     }
-    .activity-stats {
-      margin: 28px 0;
-    }
-    .activity-stats > div + div {
-      padding-left: 16px;
-    }
     .scroll-hint {
       display: block;
-    }
-    .card-footer {
-      flex-direction: column;
-      gap: 8px;
     }
   }
 </style>

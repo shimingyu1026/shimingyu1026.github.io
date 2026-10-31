@@ -62,19 +62,12 @@ export function createCalendar(days: ContributionDay[]) {
       label: `${dateLabel(day.date)} · ${day.count} 次贡献`
     }
   })
-  const total = days.reduce((sum, day) => sum + day.count, 0)
-  const activeDays = days.filter((day) => day.count > 0).length
-  const bestDay = Math.max(...days.map((day) => day.count))
   const last = days[days.length - 1].date
   return {
     cells,
     months,
-    total,
-    activeDays,
-    bestDay,
     width: cells[cells.length - 1].x + 16,
     range: `${dateLabel(days[0].date)} — ${dateLabel(last)}`,
-    updated: `数据截至 ${dateLabel(last)}`,
-    summary: `最近一年的 GitHub 贡献日历：共 ${total} 次贡献，${activeDays} 个活跃日，单日最高 ${bestDay} 次。`
+    summary: `GitHub 贡献日历：${dateLabel(days[0].date)} 至 ${dateLabel(last)}。`
   }
 }
