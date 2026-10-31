@@ -1,0 +1,55 @@
+---
+import { Icon } from 'astro-pure/user'
+import { emails } from '../../data/contact'
+---
+
+<details id='email-menu'>
+  <summary
+    class='flex cursor-pointer list-none items-center justify-center gap-x-2 hover:opacity-75'
+  >
+    <Icon name='email' class='size-5' />
+    <span>Email</span>
+    <span class='text-xs text-muted-foreground' aria-hidden='true'>▾</span>
+  </summary>
+  <ul
+    class='absolute left-1/2 top-full z-30 mt-3 w-max max-w-[calc(100vw-3rem)] -translate-x-1/2 rounded-xl border bg-background p-2 shadow-lg'
+    aria-label='Email addresses'
+  >
+    {
+      emails.map(({ institution, address }) => (
+        <li>
+          <a
+            href={`mailto:${address}`}
+            class='block rounded-lg px-3 py-2 text-left hover:bg-muted focus-visible:bg-muted'
+          >
+            <span class='block text-xs text-muted-foreground'>{institution}</span>
+            <span class='break-all text-sm'>{address}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</details>
+
+<style>
+  summary::-webkit-details-marker {
+    display: none;
+  }
+</style>
+
+<script>
+  const emailMenu = document.querySelector<HTMLDetailsElement>('#email-menu')
+
+  document.addEventListener('click', (event) => {
+    if (emailMenu?.open && event.target instanceof Node && !emailMenu.contains(event.target)) {
+      emailMenu.open = false
+    }
+  })
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && emailMenu?.open) {
+      emailMenu.open = false
+      emailMenu.querySelector('summary')?.focus()
+    }
+  })
+</script>

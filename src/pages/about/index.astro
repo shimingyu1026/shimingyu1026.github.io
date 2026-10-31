@@ -1,4 +1,6 @@
 ---
+import { emails } from '../../data/contact'
+
 import PageLayout from '@/layouts/CommonPage.astro'
 
 const headings = [
@@ -26,6 +28,12 @@ const headings = [
   <h2 id='contact'>Contact</h2>
   <ul>
     <li>GitHub：<a href='https://github.com/shimingyu1026'>@shimingyu1026</a></li>
-    <li>Email：<a href='mailto:mingyu.shi@smail.nju.edu.cn'>mingyu.shi@smail.nju.edu.cn</a></li>
+    {
+      emails.map(({ institution, address }) => (
+        <li>
+          Email（{institution}）：<a href={`mailto:${address}`}>{address}</a>
+        </li>
+      ))
+    }
   </ul>
 </PageLayout>
