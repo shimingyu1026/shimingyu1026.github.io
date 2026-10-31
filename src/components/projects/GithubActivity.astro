@@ -1,0 +1,396 @@
+---
+import { Icon } from 'astro-pure/user'
+import { createCalendar, fetchContributions } from '@/utils/githubContributions'
+
+let calendar: ReturnType<typeof createCalendar> | undefined
+try {
+  calendar = createCalendar(await fetchContributions())
+} catch {
+  // The client retries; an unavailable external service must not prevent publication.
+}
+---
+
+<github-activity>
+  <header class='activity-heading'>
+    <div>
+      <p class='eyebrow'>@shimingyu1026</p>
+      <h1>GitHub Activities</h1>
+      <p class='intro'>代码与学习的日常记录。</p>
+    </div>
+    <a
+      class='profile-link'
+      href='https://github.com/shimingyu1026'
+      target='_blank'
+      rel='noopener noreferrer'
+    >
+      <Icon name='github' class='size-5' />
+      <span>访问 GitHub</span><span aria-hidden='true'>↗</span>
+    </a>
+  </header>
+
+  <section class='activity-card' aria-label='GitHub 贡献记录'>
+    <div class='card-heading'>
+      <h2><span class='status-dot' aria-hidden='true'></span>最近一年</h2>
+      <span data-range>{calendar?.range}</span>
+    </div>
+
+    <div class='calendar-content' hidden={!calendar}>
+      <dl class='activity-stats'>
+        <div><dt>贡献总数</dt><dd data-total>{calendar?.total.toLocaleString('en-US')}</dd></div>
+        <div>
+          <dt>活跃天数</dt><dd><span data-active>{calendar?.activeDays}</span><small>天</small></dd>
+        </div>
+        <div>
+          <dt>单日最高</dt><dd><span data-best>{calendar?.bestDay}</span><small>次</small></dd>
+        </div>
+      </dl>
+
+      <div
+        class='calendar-scroll'
+        tabindex='0'
+        role='region'
+        aria-label='贡献日历，可左右滚动查看完整年份'
+      >
+        <svg
+          class='calendar'
+          viewBox={`0 0 ${calendar?.width ?? 876} 142`}
+          role='img'
+          aria-label={calendar?.summary}
+        >
+          <g class='month-labels'>
+            {
+              calendar?.months.map((month) => (
+                <text x={month.x} y='12'>
+                  {month.label}
+                </text>
+              ))
+            }
+          </g>
+          <g class='weekday-labels' aria-hidden='true'>
+            <text x='0' y='52'>一</text><text x='0' y='84'>三</text><text x='0' y='116'>五</text>
+          </g>
+          <g class='contribution-cells'>
+            {
+              calendar?.cells.map((day) => (
+                <rect x={day.x} y={day.y} width='12' height='12' rx='3' data-level={day.level}>
+                  <title>{day.label}</title>
+                </rect>
+              ))
+            }
+          </g>
+        </svg>
+      </div>
+      <div class='calendar-caption'>
+        <span class='scroll-hint'>左右滑动查看全年</span>
+        <span class='legend' aria-label='颜色由浅到深表示贡献由少到多'>
+          少 <i data-level='0'></i><i data-level='1'></i><i data-level='2'></i><i data-level='3'
+          ></i><i data-level='4'></i> 多
+        </span>
+      </div>
+    </div>
+
+    <p class='calendar-empty' hidden={!!calendar}>暂时无法加载贡献记录，可以前往 GitHub 查看。</p>
+    <footer class='card-footer'>
+      <span data-updated>{calendar?.updated ?? '贡献数据暂不可用'}</span>
+      <a
+        href='https://github.com/shimingyu1026?tab=overview'
+        target='_blank'
+        rel='noopener noreferrer'>在 GitHub 查看完整记录 <span aria-hidden='true'>↗</span></a
+      >
+    </footer>
+  </section>
+</github-activity>
+
+<script>
+  import { createCalendar, fetchContributions } from '@/utils/githubContributions'
+
+  class GithubActivity extends HTMLElement {
+    async connectedCallback() {
+      if (this.dataset.initialized) return
+      this.dataset.initialized = 'true'
+      const scroll = this.querySelector<HTMLElement>('.calendar-scroll')!
+      scroll.scrollLeft = scroll.scrollWidth
+      try {
+        const calendar = createCalendar(await fetchContributions())
+        if (!this.isConnected) return
+        const values = {
+          total: calendar.total.toLocaleString('en-US'),
+          active: calendar.activeDays,
+          best: calendar.bestDay,
+          range: calendar.range,
+          updated: calendar.updated
+        }
+        for (const [key, value] of Object.entries(values)) {
+          this.querySelector(`[data-${key}]`)!.textContent = String(value)
+        }
+        const svg = this.querySelector<SVGSVGElement>('.calendar')!
+        svg.setAttribute('viewBox', `0 0 ${calendar.width} 142`)
+        svg.setAttribute('aria-label', calendar.summary)
+        const ns = 'http://www.w3.org/2000/svg'
+        this.querySelector('.month-labels')!.replaceChildren(
+          ...calendar.months.map((month) => {
+            const text = document.createElementNS(ns, 'text')
+            text.setAttribute('x', String(month.x))
+            text.setAttribute('y', '12')
+            text.textContent = month.label
+            return text
+          })
+        )
+        this.querySelector('.contribution-cells')!.replaceChildren(
+          ...calendar.cells.map((day) => {
+            const rect = document.createElementNS(ns, 'rect')
+            for (const [key, value] of Object.entries({
+              x: day.x,
+              y: day.y,
+              width: 12,
+              height: 12,
+              rx: 3,
+              'data-level': day.level
+            })) {
+              rect.setAttribute(key, String(value))
+            }
+            const title = document.createElementNS(ns, 'title')
+            title.textContent = day.label
+            rect.append(title)
+            return rect
+          })
+        )
+        this.querySelector<HTMLElement>('.calendar-content')!.hidden = false
+        this.querySelector<HTMLElement>('.calendar-empty')!.hidden = true
+        scroll.scrollLeft = scroll.scrollWidth
+      } catch {
+        // Preserve the pre-rendered snapshot and its date if refreshing fails.
+      }
+    }
+  }
+  if (!customElements.get('github-activity'))
+    customElements.define('github-activity', GithubActivity)
+</script>
+
+<style>
+  github-activity {
+    display: block;
+    --level-0: #e7edf1;
+    --level-1: #c2dce5;
+    --level-2: #88bacb;
+    --level-3: #4f91aa;
+    --level-4: #286681;
+  }
+  :global(.dark) github-activity {
+    --level-0: #333e48;
+    --level-1: #365363;
+    --level-2: #47798e;
+    --level-3: #69a5ba;
+    --level-4: #a4d7e7;
+  }
+  .activity-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 36px;
+  }
+  .eyebrow {
+    color: hsl(var(--muted-foreground));
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    letter-spacing: -0.035em;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .intro {
+    margin-top: 12px;
+    color: hsl(var(--muted-foreground));
+    font-size: 14px;
+  }
+  .profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    background: hsl(var(--card));
+  }
+  .profile-link:hover {
+    border-color: var(--level-3);
+  }
+  .activity-card {
+    border: 1px solid hsl(var(--border));
+    border-radius: 24px;
+    padding: 28px 32px 0;
+    background: linear-gradient(140deg, hsl(var(--card)), hsl(var(--background)));
+    box-shadow: 0 8px 30px hsl(var(--foreground) / 0.025);
+    overflow: hidden;
+  }
+  .card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card-heading h2 {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--level-3);
+  }
+  [data-range] {
+    font-size: 12px;
+    color: hsl(var(--muted-foreground));
+    font-variant-numeric: tabular-nums;
+  }
+  .activity-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 32px 0 36px;
+  }
+  .activity-stats > div + div {
+    border-left: 1px solid hsl(var(--border));
+    padding-left: 28px;
+  }
+  dt {
+    font-size: 12px;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 8px;
+  }
+  dd {
+    font-size: clamp(26px, 5vw, 42px);
+    line-height: 1.15;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+  }
+  dd small {
+    font-size: 12px;
+    font-weight: 400;
+    color: hsl(var(--muted-foreground));
+    margin-left: 8px;
+  }
+  .calendar-scroll {
+    overflow-x: auto;
+    padding: 4px 0 8px;
+    border-radius: 6px;
+  }
+  .calendar {
+    width: 100%;
+    min-width: 680px;
+    display: block;
+    overflow: visible;
+  }
+  .calendar :global(text) {
+    fill: hsl(var(--muted-foreground));
+    font-size: 10px;
+    font-family: inherit;
+  }
+  :global(github-activity [data-level='0']) {
+    fill: var(--level-0);
+    background: var(--level-0);
+  }
+  :global(github-activity [data-level='1']) {
+    fill: var(--level-1);
+    background: var(--level-1);
+  }
+  :global(github-activity [data-level='2']) {
+    fill: var(--level-2);
+    background: var(--level-2);
+  }
+  :global(github-activity [data-level='3']) {
+    fill: var(--level-3);
+    background: var(--level-3);
+  }
+  :global(github-activity [data-level='4']) {
+    fill: var(--level-4);
+    background: var(--level-4);
+  }
+  .calendar :global(rect:hover) {
+    stroke: hsl(var(--foreground));
+    stroke-width: 1.5px;
+  }
+  .calendar-caption {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 6px 0 24px;
+    gap: 16px;
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+  }
+  .legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .legend i {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+  }
+  .scroll-hint {
+    display: none;
+    margin-right: auto;
+  }
+  .card-footer {
+    border-top: 1px solid hsl(var(--border));
+    padding: 18px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+  }
+  .calendar-empty {
+    padding: 48px 0;
+    font-size: 14px;
+    color: hsl(var(--muted-foreground));
+  }
+  [hidden] {
+    display: none !important;
+  }
+  a:focus-visible,
+  .calendar-scroll:focus-visible {
+    outline: 2px solid var(--level-3);
+    outline-offset: 4px;
+  }
+  @media (max-width: 767px) {
+    .activity-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .activity-card {
+      padding: 22px 18px 0;
+      border-radius: 18px;
+    }
+    .card-heading {
+      flex-wrap: wrap;
+    }
+    .activity-stats {
+      margin: 28px 0;
+    }
+    .activity-stats > div + div {
+      padding-left: 16px;
+    }
+    .scroll-hint {
+      display: block;
+    }
+    .card-footer {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+</style>

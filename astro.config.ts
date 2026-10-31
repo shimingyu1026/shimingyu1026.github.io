@@ -44,13 +44,6 @@ export default defineConfig({
 
   image: {
     responsiveStyles: true,
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'ghchart.rshah.org',
-        pathname: '/409ba5/shimingyu1026'
-      }
-    ],
     service: {
       entrypoint: 'astro/assets/services/sharp'
     }
