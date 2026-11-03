@@ -49,8 +49,7 @@ const typographyConfig = {
       top: '2.6rem',
       right: '-1.4rem',
       'font-size': '10rem',
-      'font-family':
-        '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif',
+      'font-family': 'var(--font-serif)',
       transform: 'rotate(-15deg)',
       opacity: '0.1'
     },
@@ -209,7 +208,12 @@ export default defineConfig({
   ],
   rules,
   theme: {
-    colors: themeColors
+    colors: themeColors,
+    fontFamily: {
+      sans: 'var(--font-serif)',
+      serif: 'var(--font-serif)',
+      mono: 'var(--font-serif)'
+    }
   },
   // https://unocss.dev/guide/extracting#limitations
   safelist: [
